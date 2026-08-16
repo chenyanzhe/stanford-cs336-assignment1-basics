@@ -8,21 +8,7 @@ PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s
 
 # Performance Records
 # 1. pre-tokenization: 0.046, merges: 2.212
-def merge_pair(tokens: tuple[bytes, ...], pair: tuple[bytes, bytes]) -> tuple[bytes, ...]:
-    A, B = pair
-    result = []
-
-    i = 0
-    while i < len(tokens):
-        if i + 1 < len(tokens) and tokens[i] == A and tokens[i + 1] == B:
-            result.append(A + B)
-            i += 2
-        else:
-            result.append(tokens[i])
-            i += 1
-
-    return tuple(result)
-
+# 2. pre-tokenization: 0.104, merges: 1.216
 def train_bpe(
     input_path: str | os.PathLike,
     vocab_size: int,
@@ -58,21 +44,43 @@ def train_bpe(
      next_v += 1
 
   merges = list()
+  if next_v >= vocab_size:
+     return vocab, merges
+
+  # Build pair_counts stats.
+  pair_counts = defaultdict(int)
+  for tokens, count in f_table.items():
+     for a, b in zip(tokens[:-1], tokens[1:]):
+        pair_counts[(a, b)] += count
+  
   while next_v < vocab_size:
-     # Do one merge.
-     pair_counts = defaultdict(int)
-     for item, count in f_table.items():
-        for a, b in zip(item[:-1], item[1:]):
-           pair_counts[(a, b)] += count
-     merged_pair = max(pair_counts, key=lambda pair: (pair_counts[pair], pair))
-     merges.append(merged_pair)
-     vocab[next_v] = merged_pair[0] + merged_pair[1]
+     # Find the pair to merge: (a, b).
+     a, b = max(pair_counts, key=lambda pair: (pair_counts[pair], pair))
+     merges.append((a, b))
+     vocab[next_v] = a + b
      next_v += 1
-     # Merge the pair in f_table.
-     updated_f_table = defaultdict(int)
-     for item, count in f_table.items():
-        updated_f_table[merge_pair(item, merged_pair)] = count
-     f_table = updated_f_table
+     # Merging a and b invalidates the (a, b) pair.
+     del pair_counts[(a, b)]
+     for tokens, count in list(f_table.items()):
+        merged_tokens = []
+        i = 0
+        while i < len(tokens):
+            if i + 1 < len(tokens) and tokens[i] == a and tokens[i + 1] == b:
+                # Merging a and b in [prev_a, a, b, next_b] will:
+                # - invalidate (prev_a, a) and (b, next_b) pairs.
+                # - create (prev_a, a + b) and (a + b, next_b) pairs.
+                merged_tokens.append(a + b)
+                if i > 0:
+                   pair_counts[(tokens[i - 1], a)] -= count
+                   pair_counts[(tokens[i - 1], a + b)] += count
+                if i + 2 < len(tokens):
+                   pair_counts[(b, tokens[i + 2])] -= count
+                   pair_counts[(a + b, tokens[i + 2])] += count
+                i += 2
+            else:
+                merged_tokens.append(tokens[i])
+                i += 1
+        f_table[tuple(merged_tokens)] = f_table.pop(tokens)
 
   # end_time2 = time.time()
   # print("merges took ", end_time2 - end_time)
