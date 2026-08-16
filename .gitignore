@@ -164,3 +164,4 @@ cython_debug/
 
 # Avoid unnecessary uploads
 uv.lock
+data/
