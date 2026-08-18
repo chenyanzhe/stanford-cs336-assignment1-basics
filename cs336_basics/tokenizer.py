@@ -2,6 +2,7 @@ import os
 import time
 import argparse
 import pickle
+import pathlib
 import regex as re
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
@@ -170,14 +171,11 @@ if __name__ == "__main__":
         default="data/TinyStoriesV2-GPT4-train.txt",
         help="Path to a text file with BPE tokenizer training data.",
     )
-    parser.add_argument(
-        "--output-path",
-        default="output/",
-        help="Output path to store vocabulary and merges."
-    )
+    parser.add_argument("--output-path", default="output/", help="Output path to store vocabulary and merges.")
     parser.add_argument(
         "--vocab-size",
         default=10000,
+        type=int,
         help="A positive integer that defines the maximum final vocabulary size.",
     )
     parser.add_argument(
@@ -185,12 +183,13 @@ if __name__ == "__main__":
     )
     parser.add_argument("--num-processes", default=4, type=int, help="Number of processes used in pre-tokenization.")
     args = parser.parse_args()
-    print(f"Train BPE tokenizer with: {args}")
+    dataset_name = re.split("[-_]", pathlib.Path(args.input_path).stem)[0]
+    print(f"Train BPE tokenizer with {dataset_name}: {args}")
     vocab, merges = train_bpe(args.input_path, args.vocab_size, args.special_tokens, args.num_processes)
     print(f"Train complete - vocabulary size: {len(vocab)}, longest token: {max(vocab.values(), key=len)}")
-    print(f"Saving vocab and merges to {args.output_path} (vocab.pkl and merges.pkl)")
-    with open(args.output_path + "vocab.pkl", "wb") as f:
+    print(f"Saving vocab and merges to {args.output_path} ({dataset_name}-vocab.pkl and {dataset_name}-merges.pkl)")
+    with open(args.output_path + dataset_name + "-vocab.pkl", "wb") as f:
         pickle.dump(vocab, f)
-    with open(args.output_path + "merges.pkl", "wb") as f:
+    with open(args.output_path + dataset_name + "-merges.pkl", "wb") as f:
         pickle.dump(merges, f)
     print("All done.")
