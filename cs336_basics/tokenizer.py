@@ -1,5 +1,7 @@
 import os
 import time
+import argparse
+import pickle
 import regex as re
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
@@ -82,6 +84,7 @@ def train_bpe(
     input_path: str | os.PathLike,
     vocab_size: int,
     special_tokens: list[str],
+    num_processes=4,
 ) -> tuple[dict[int, bytes], list[tuple[bytes, bytes]]]:
     # Initialize vocabulary with the initial byte vocabulary and special tokens.
     vocab = dict()
@@ -98,7 +101,6 @@ def train_bpe(
 
     start_time = time.time()
     with open(input_path, "rb") as f:
-        num_processes = 4
         boundaries = find_chunk_boundaries(f, num_processes, b"<|endoftext|>")
     # Parallelize pre-tokenization work by sending each start/end pair to a set of processes.
     tasks = [(input_path, special_tokens, start, end) for start, end in zip(boundaries[:-1], boundaries[1:])]
@@ -156,6 +158,39 @@ def train_bpe(
                     pair_to_words[p].add(idx)
 
     end_time2 = time.time()
-    print(f"pre-tokenization: {end_time - start_time:.3f}s merges: {end_time2 - end_time:.3f}s")
+    print(f"Perf stats - pre-tokenization: {end_time - start_time:.3f}s merges: {end_time2 - end_time:.3f}s")
 
     return vocab, merges
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(prog="tokenizer", description="A BPE tokenizer")
+    parser.add_argument(
+        "--input-path",
+        default="data/TinyStoriesV2-GPT4-train.txt",
+        help="Path to a text file with BPE tokenizer training data.",
+    )
+    parser.add_argument(
+        "--output-path",
+        default="output/",
+        help="Output path to store vocabulary and merges."
+    )
+    parser.add_argument(
+        "--vocab-size",
+        default=10000,
+        help="A positive integer that defines the maximum final vocabulary size.",
+    )
+    parser.add_argument(
+        "--special-tokens", nargs="*", default=["<|endoftext|>"], help="A list of strings to add to the vocabulary."
+    )
+    parser.add_argument("--num-processes", default=4, type=int, help="Number of processes used in pre-tokenization.")
+    args = parser.parse_args()
+    print(f"Train BPE tokenizer with: {args}")
+    vocab, merges = train_bpe(args.input_path, args.vocab_size, args.special_tokens, args.num_processes)
+    print(f"Train complete - vocabulary size: {len(vocab)}, longest token: {max(vocab.values(), key=len)}")
+    print(f"Saving vocab and merges to {args.output_path} (vocab.pkl and merges.pkl)")
+    with open(args.output_path + "vocab.pkl", "wb") as f:
+        pickle.dump(vocab, f)
+    with open(args.output_path + "merges.pkl", "wb") as f:
+        pickle.dump(merges, f)
+    print("All done.")
