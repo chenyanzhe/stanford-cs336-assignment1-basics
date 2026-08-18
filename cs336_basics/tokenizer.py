@@ -25,6 +25,13 @@ def merge_pair(tokens: list[bytes], pair: tuple[bytes, bytes]) -> list[bytes]:
     return result
 
 
+def count_pairs(tokens: list[bytes]) -> defaultdict[int]:
+    pair_counts = defaultdict(int)
+    for i, j in zip(tokens[:-1], tokens[1:]):
+        pair_counts[(i, j)] += 1
+    return pair_counts
+
+
 def pre_tokenization(args: tuple):
     input_path, special_tokens, start, end = args
     word_counts = defaultdict(int)
@@ -123,53 +130,30 @@ def train_bpe(
         merges.append((a, b))
         vocab[next_v] = a + b
         next_v += 1
-        pair_counts.pop((a, b))
 
-        # For each word contains the merge pair (a, b), updates word_counts, pair_counts and pair_to_words.
+        # For each word contains the merge pair (a, b), updates pair_counts and pair_to_words.
         for idx in list(pair_to_words[(a, b)]):
             tokens = word_tokens[idx]
             count = word_freqs[idx]
             merged_tokens = merge_pair(tokens, (a, b))
             word_tokens[idx] = merged_tokens
-            # tuple(bytes, bytes) -> bool
-            # if pair_to_remove[(x, y)] is true, we need to remove idx from pair_to_words[(x, y)].
-            pair_to_remove = dict()
 
-            for i, j in zip(merged_tokens[:-1], merged_tokens[1:]):
-                if i == a + b and j == a + b:
-                    pair_counts[(b, a)] -= count
-                    if pair_counts[(b, a)] == 0:
-                        pair_counts.pop((b, a))
-                    if (b, a) not in pair_to_remove:
-                        pair_to_remove[(b, a)] = True
-                    pair_counts[(i, j)] += count
-                    pair_to_words[(i, j)].add(idx)
-                elif i == a + b:  # and j != a + b
-                    pair_counts[(b, j)] -= count
-                    if pair_counts[(b, j)] == 0:
-                        pair_counts.pop((b, j))
-                    if (b, j) not in pair_to_remove:
-                        pair_to_remove[(b, j)] = True
-                    pair_counts[(a + b, j)] += count
-                    pair_to_words[(a + b, j)].add(idx)
-                elif j == a + b:  # and i != a + b
-                    pair_counts[(i, a)] -= count
-                    if pair_counts[(i, a)] == 0:
-                        pair_counts.pop((i, a))
-                    if (i, a) not in pair_to_remove:
-                        pair_to_remove[(i, a)] = True
-                    pair_counts[(i, a + b)] += count
-                    pair_to_words[(i, a + b)].add(idx)
-                else:  # i != a + b and j != a + b
-                    pair_to_remove[(i, j)] = False
+            old_pair_counts = count_pairs(tokens)
+            new_pair_counts = count_pairs(merged_tokens)
 
-            for pair, remove in pair_to_remove.items():
-                if remove:
-                    pair_to_words[pair].remove(idx)
-                    if len(pair_to_words[pair]) == 0:
-                        pair_to_words.pop(pair)
+            for p in old_pair_counts.keys():
+                pair_counts[p] += (new_pair_counts[p] - old_pair_counts[p]) * count
+                if pair_counts[p] == 0:
+                    pair_counts.pop(p)
+                if new_pair_counts[p] == 0:
+                    pair_to_words[p].remove(idx)
+                    if len(pair_to_words[p]) == 0:
+                        pair_to_words.pop(p)
 
-        pair_to_words.pop((a, b))
+            for p in new_pair_counts.keys():
+                if old_pair_counts[(p)] == 0:
+                    pair_counts[p] += new_pair_counts[p] * count
+                    pair_to_words[p].add(idx)
 
     end_time2 = time.time()
     print(f"pre-tokenization: {end_time - start_time:.3f}s merges: {end_time2 - end_time:.3f}s")
