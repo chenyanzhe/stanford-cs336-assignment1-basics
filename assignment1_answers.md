@@ -1,6 +1,6 @@
-## Byte-Pair Encoding (BPE) Tokenizer
+## 2 Byte-Pair Encoding (BPE) Tokenizer
 
-### The Unicode Standard
+### 2.1 The Unicode Standard
 
 #### Problem (unicode1)
 
@@ -30,7 +30,7 @@
   ```
   visible.
 
-### Unicode Encodings
+### 2.2 Unicode Encodings
 
 #### Problem (unicode2)
 
@@ -63,4 +63,32 @@
 
   It shows that **not every arbitrary sequence of bytes is valid UTF-8**.
 
-### BPE Tokenizer Training
+### 2.5 Experimenting with BPE Tokenizer Training
+
+#### Problem (train_bpe_tinystories)
+
+- (a) `$ uv run python -m cs336_basics.tokenizer --num-processes 32`
+
+  - Total time: ~145s using 32 processes.
+  - Memory consumption: N/A.
+  - The longest token: b' accomplishment'
+  - Does it make sense?
+
+- (b) Time breakdown - pre-tokenization: 31s, merges: 114s.
+
+    Parallelization helps reduce pre-tokenization time. As a comparison, it took 202s for pre-tokenization when using 4 processes.
+
+#### Problem (train_bpe_expts_owt)
+
+- (a) `uv run python -m cs336_basics.tokenizer --input-path "data/owt_train.txt" --num-processes 64 --vocab-size 32000`
+
+  - Total time: 31681s (~8.8h) using 32 processes.
+  - Time breakdown - pre-tokenization: 176s, merges: 31505s
+  - The longest token: ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ
+
+    ```python
+    b'\xc3\x83\xc3\x82\xc3\x83\xc3\x82\xc3\x83\xc3\x82\xc3\x83\xc3\x82\xc3\x83\xc3\x82\xc3\x83\xc3\x82\xc3\x83\xc3\x82\xc3\x83\xc3\x82\xc3\x83\xc3\x82\xc3\x83\xc3\x82\xc3\x83\xc3\x82\xc3\x83\xc3\x82\xc3\x83\xc3\x82\xc3\x83\xc3\x82\xc3\x83\xc3\x82\xc3\x83\xc3\x82'
+    ```
+  - Does it make sense?
+
+- (b)
