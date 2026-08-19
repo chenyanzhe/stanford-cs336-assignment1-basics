@@ -69,14 +69,15 @@
 
 - (a) `$ uv run python -m cs336_basics.tokenizer --num-processes 32`
 
-  - Total time: ~145s using 32 processes.
+  - Total time: ~49s using 32 processes.
   - Memory consumption: N/A.
   - The longest token: b' accomplishment'
   - Does it make sense?
 
-- (b) Time breakdown - pre-tokenization: 31s, merges: 114s.
+- (b) Time breakdown - pre-tokenization: 31s, merges: 18s.
 
-    Parallelization helps reduce pre-tokenization time. As a comparison, it took 202s for pre-tokenization when using 4 processes.
+  - Parallelization helps reduce pre-tokenization time. As a comparison, it took 202s for pre-tokenization when using 4 processes.
+  - Using heap for pair counts (O(1) to find the pair with the largest count) greatly reduces merge time. As a comparison, it took 114s in merge without heap.
 
 #### Problem (train_bpe_expts_owt)
 

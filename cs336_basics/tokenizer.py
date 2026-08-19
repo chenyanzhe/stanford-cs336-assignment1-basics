@@ -3,6 +3,7 @@ import time
 import argparse
 import pickle
 import pathlib
+import heapq
 import regex as re
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
@@ -10,6 +11,18 @@ from cs336_basics.pretokenization_example import find_chunk_boundaries
 
 PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
 COMPILED_PAT = re.compile(PAT)
+
+
+class MaxHeapItem:
+    def __init__(self, count, pair):
+        self.count = count
+        self.pair = pair
+
+    def __lt__(self, other):
+        if self.count != other.count:
+            return self.count > other.count
+
+        return self.pair > other.pair
 
 
 def merge_pair(tokens: list[bytes], pair: tuple[bytes, bytes]) -> list[bytes]:
@@ -120,25 +133,36 @@ def train_bpe(
     word_freqs = list(word_counts.values())  # index -> int
 
     # Build pair_counts and pair_to_words stats.
+    heap = []  # heap(MaxHeapItem(int, tuple(bytes, bytes)))
     pair_counts = defaultdict(int)  # tuple(bytes, bytes) -> int
     pair_to_words = defaultdict(set[int])  # tuple(bytes, bytes) -> set(int)
     for idx in range(len(word_tokens)):
-        for i, j in zip(word_tokens[idx][:-1], word_tokens[idx][1:]):
-            pair_counts[(i, j)] += word_freqs[idx]
-            pair_to_words[(i, j)].add(idx)
+        for pair in zip(word_tokens[idx][:-1], word_tokens[idx][1:]):
+            pair_counts[pair] += word_freqs[idx]
+            heapq.heappush(heap, MaxHeapItem(pair_counts[pair], pair))
+            pair_to_words[pair].add(idx)
 
     while next_v < vocab_size and pair_counts:
-        # Merge the pair (a, b) that occurs the most.
-        a, b = max(pair_counts, key=lambda pair: (pair_counts[pair], pair))
-        merges.append((a, b))
-        vocab[next_v] = a + b
+        # Find the pair to merge.
+        pair_to_merge = None
+        while heap:
+            item = heapq.heappop(heap)
+            if item.pair not in pair_counts or item.count != pair_counts[item.pair]:
+                continue
+            pair_to_merge = item.pair
+            break
+        if pair_to_merge is None:
+            break
+
+        merges.append(pair_to_merge)
+        vocab[next_v] = pair_to_merge[0] + pair_to_merge[1]
         next_v += 1
 
-        # For each word contains the merge pair (a, b), updates pair_counts and pair_to_words.
-        for idx in list(pair_to_words[(a, b)]):
+        # For each word contains the merge pair, updates pair_counts and pair_to_words.
+        for idx in list(pair_to_words[pair_to_merge]):
             tokens = word_tokens[idx]
             count = word_freqs[idx]
-            merged_tokens = merge_pair(tokens, (a, b))
+            merged_tokens = merge_pair(tokens, pair_to_merge)
             word_tokens[idx] = merged_tokens
 
             old_pair_counts = count_pairs(tokens)
@@ -148,6 +172,8 @@ def train_bpe(
                 pair_counts[p] += (new_pair_counts[p] - old_pair_counts[p]) * count
                 if pair_counts[p] == 0:
                     pair_counts.pop(p)
+                else:
+                    heapq.heappush(heap, MaxHeapItem(pair_counts[p], p))
                 if new_pair_counts[p] == 0:
                     pair_to_words[p].remove(idx)
                     if len(pair_to_words[p]) == 0:
@@ -156,6 +182,7 @@ def train_bpe(
             for p in new_pair_counts.keys():
                 if old_pair_counts[(p)] == 0:
                     pair_counts[p] += new_pair_counts[p] * count
+                    heapq.heappush(heap, MaxHeapItem(pair_counts[p], p))
                     pair_to_words[p].add(idx)
 
     end_time2 = time.time()
