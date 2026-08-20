@@ -83,8 +83,11 @@
 
 - (a) `uv run python -m cs336_basics.tokenizer --input-path "data/owt_train.txt" --num-processes 64 --vocab-size 32000`
 
-  - Total time: 31681s (~8.8h) using 32 processes.
-  - Time breakdown - pre-tokenization: 176s, merges: 31505s
+  - Total time: 6182s (~1.7h) using 64 processes.
+  - Time breakdown - pre-tokenization: 183s, merges: 5999s
+
+    > It took 31505s (~8.8h) in merge without heap.
+
   - The longest token: ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ
 
     ```python
