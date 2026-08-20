@@ -56,7 +56,7 @@ def pre_tokenization(args: tuple):
         chunk = f.read(end - start).decode("utf-8", errors="ignore")
         # Remove special tokens before pre-tokenization.
         if special_tokens:
-            corpora = re.split("|".join(map(re.escape, special_tokens)), chunk)
+            corpora = re.split("|".join(map(re.escape, sorted(special_tokens, key=len, reverse=True))), chunk)
         else:
             corpora = [chunk]
         # Pre-tokenization and count frequency.
