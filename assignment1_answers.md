@@ -67,7 +67,7 @@
 
 #### Problem (train_bpe_tinystories)
 
-- (a) `$ uv run python -m cs336_basics.tokenizer --num-processes 32`
+- (a) `$ uv run python -m cs336_basics.train_bpe --num-processes 32`
 
   - Total time: ~49s using 32 processes.
   - Memory consumption: N/A.
@@ -81,7 +81,7 @@
 
 #### Problem (train_bpe_expts_owt)
 
-- (a) `uv run python -m cs336_basics.tokenizer --input-path "data/owt_train.txt" --num-processes 64 --vocab-size 32000`
+- (a) `uv run python -m cs336_basics.train_bpe --input-path "data/owt_train.txt" --num-processes 64 --vocab-size 32000`
 
   - Total time: 6182s (~1.7h) using 64 processes.
   - Time breakdown - pre-tokenization: 183s, merges: 5999s
