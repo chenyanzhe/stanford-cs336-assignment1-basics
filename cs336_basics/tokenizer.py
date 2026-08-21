@@ -115,7 +115,8 @@ class Tokenizer:
         return result
 
     def encode_iterable(self, iterable: Iterable[str]) -> Iterator[int]:
-        raise NotImplementedError
+        for text in iterable:
+            yield from self.encode(text)
 
     def decode(self, ids: list[int]) -> str:
         return b"".join([self.vocab[id] for id in ids]).decode("utf-8", errors="replace")
