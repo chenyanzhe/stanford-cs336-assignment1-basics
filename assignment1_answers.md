@@ -95,4 +95,13 @@
     ```
   - Does it make sense?
 
-- (b)
+- (b) OpenWebText is more complex, it comes from the real world.
+
+### 2.7 Experiments
+
+#### Problem (tokenizer_experiments)
+
+- (a) TinyStories tokenizer's compression ratio is 0.2448, OpenWebText tokenizer's compression ratio is 0.2284.
+- (b) The compression ratio is 0.3159, which is much larger. It's likely because TinyStories dataset is simpler than OpenWebText dataset, so texts from OpenWebText can't be merged efficiently with the TinyStories tokenizer.
+- (c) The TinyStories tokenizer throughput: 5.81 MB/s, OpenWebText tokenizer throughput: 5.65 MB/s. It will take ~1.8 days to tokenize the Pile dataset.
+- (d) Because uint16 can represent up to 65536 integers, which is enough for 32K vocabulary size.
