@@ -1,7 +1,9 @@
 import torch
 import math
 from torch import nn
+from torch import Tensor
 from einops import einsum
+from jaxtyping import Float
 
 
 class Linear(nn.Module):
@@ -14,5 +16,5 @@ class Linear(nn.Module):
         nn.init.trunc_normal_(weight, std=std, a=-3 * std, b=3 * std)
         self.W = nn.Parameter(weight)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: Float[Tensor, "... d_in"]) -> Float[Tensor, "... d_out"]:
         return einsum(x, self.W, "... d_in, d_out d_in -> ... d_out")
