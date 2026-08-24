@@ -1,7 +1,5 @@
 from torch import nn
-from torch import Tensor
 import torch
-from jaxtyping import Float, Int
 
 
 class Embedding(nn.Module):
@@ -17,5 +15,5 @@ class Embedding(nn.Module):
         nn.init.trunc_normal_(weight, a=-3, b=3)
         self.W = nn.Parameter(weight)
 
-    def forward(self, token_ids: Int[Tensor, " ..."]) -> Float[Tensor, " ... d_model"]:
+    def forward(self, token_ids: torch.Tensor) -> torch.Tensor:
         return self.W[token_ids]
