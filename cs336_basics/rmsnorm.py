@@ -11,11 +11,11 @@ class RMSNorm(nn.Module):
         gain = torch.empty(d_model, device=device, dtype=dtype)
         torch.nn.init.constant_(gain, 1)
         self.W = nn.Parameter(gain)
-        pass
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         in_dtype = x.dtype
         x = x.to(torch.float32)
+
         rms_x = torch.sqrt(torch.mean(x**2, dim=-1, keepdim=True) + self.eps)
         result = x / rms_x * self.W
 
