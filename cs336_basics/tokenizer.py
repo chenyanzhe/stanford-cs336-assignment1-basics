@@ -1,7 +1,8 @@
 import heapq
 import pickle
-import regex as re
 from collections.abc import Iterable, Iterator
+
+import regex as re
 
 PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
 COMPILED_PAT = re.compile(PAT)

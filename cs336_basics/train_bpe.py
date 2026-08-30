@@ -1,12 +1,14 @@
-import os
-import time
 import argparse
-import pickle
-import pathlib
 import heapq
-import regex as re
+import os
+import pathlib
+import pickle
+import time
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
+
+import regex as re
+
 from cs336_basics.pretokenization_example import find_chunk_boundaries
 
 PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""

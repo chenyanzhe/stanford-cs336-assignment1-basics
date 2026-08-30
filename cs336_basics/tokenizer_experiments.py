@@ -1,5 +1,4 @@
 import random
-import time
 import timeit
 
 from cs336_basics.tokenizer import Tokenizer
