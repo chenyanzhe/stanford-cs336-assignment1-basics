@@ -27,7 +27,10 @@ class MultiHeadSelfAttention(nn.Module):
         if theta is not None:
             self.use_rope = True
             self.rope = RotaryPositionalEmbedding(theta, d_model // num_heads, max_seq_len)
-            self.token_positions = token_positions
+            if token_positions is not None:
+                self.token_positions = token_positions
+            else:
+                self.token_positions = torch.arange(max_seq_len)
 
         self.mask = torch.triu(torch.full((max_seq_len, max_seq_len), True))
         self.mask = einops.rearrange(self.mask, "i j -> j i")

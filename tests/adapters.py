@@ -19,6 +19,7 @@ from cs336_basics.softmax import softmax
 from cs336_basics.swiglu import SwiGLU
 from cs336_basics.tokenizer import Tokenizer
 from cs336_basics.train_bpe import train_bpe
+from cs336_basics.transformer_block import TransformerBlock
 
 
 def run_linear(
@@ -303,7 +304,17 @@ def run_transformer_block(
         Float[Tensor, "batch sequence_length d_model"] Tensor with the output of
         running the Transformer block on the input features while using RoPE.
     """
-    raise NotImplementedError
+    block = TransformerBlock(d_model, num_heads, d_ff, in_features.shape[-2], theta)
+    block.attn.L_q.load_state_dict({"W": weights["attn.q_proj.weight"]})
+    block.attn.L_k.load_state_dict({"W": weights["attn.k_proj.weight"]})
+    block.attn.L_v.load_state_dict({"W": weights["attn.v_proj.weight"]})
+    block.attn.L_o.load_state_dict({"W": weights["attn.output_proj.weight"]})
+    block.ln1.load_state_dict({"W": weights["ln1.weight"]})
+    block.ffn.w1.load_state_dict({"W": weights["ffn.w1.weight"]})
+    block.ffn.w2.load_state_dict({"W": weights["ffn.w2.weight"]})
+    block.ffn.w3.load_state_dict({"W": weights["ffn.w3.weight"]})
+    block.ln2.load_state_dict({"W": weights["ln2.weight"]})
+    return block(in_features)
 
 
 def run_transformer_lm(
