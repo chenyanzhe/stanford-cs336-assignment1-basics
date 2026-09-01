@@ -133,3 +133,43 @@
   - lm_head: 164,682,137,600  (0.05%)
 
 - (c) The FFN and MHA require the most FLOPs.
+- (d) Breakdown of model components and its associated FLOPs:
+
+      GPT-2 small:
+      The matrix multiplies require in total 291,687,628,800 FLOPs:
+        - embeddings: 0  (0.00%)
+        - rms: 37,748,736  (0.01%)
+        - ffn: 115,964,116,992  (39.76%)
+        - mha: 96,636,764,160  (33.13%)
+        - final rms: 1,572,864  (0.00%)
+        - lm_head: 79,047,426,048  (0.27%)
+
+      GPT-2 medium:
+      The matrix multiplies require in total 830,275,059,712 FLOPs:
+        - embeddings: 0  (0.00%)
+        - rms: 100,663,296  (0.01%)
+        - ffn: 415,538,085,888  (50.05%)
+        - mha: 309,237,645,312  (37.25%)
+        - final rms: 2,097,152  (0.00%)
+        - lm_head: 105,396,568,064  (0.13%)
+
+      GPT-2 large:
+      The matrix multiplies require in total 1,768,722,268,160 FLOPs:
+        - embeddings: 0  (0.00%)
+        - rms: 188,743,680  (0.01%)
+        - ffn: 960,327,843,840  (54.30%)
+        - mha: 676,457,349,120  (38.25%)
+        - final rms: 2,621,440  (0.00%)
+        - lm_head: 131,745,710,080  (0.07%)
+
+    When the model size grows, the FFN FLOPs grows rapidly.
+- (e) GPT-2 XL with 16X context length (1024->16384):
+  - Total FLOPs: 133,582,815,232,000 (~38X compared to 1024 context length).
+  - embeddings: 0  (0.00%)
+  - rms: 5033164800  (0.00%)
+  - ffn: 32373315993600  (24.23%)
+  - mha: 98569499443200  (73.79%)
+  - final rms: 52428800  (0.00%)
+  - lm_head: 2634914201600  (0.02%)
+
+  The MHA becomes the majority part of FLOPs.

@@ -51,3 +51,13 @@ if __name__ == "__main__":
         vocab_size=50257, context_length=1024, num_layers=48, d_model=1600, num_heads=25, d_ff=4288
     )
     count_flops(vocab_size=50257, context_length=1024, num_layers=48, d_model=1600, num_heads=25, d_ff=4288)
+
+    print("GPT-2 small:")
+    count_flops(vocab_size=50257, context_length=1024, num_layers=12, d_model=768, num_heads=12, d_ff=2048)
+    print("GPT-2 medium:")
+    count_flops(vocab_size=50257, context_length=1024, num_layers=24, d_model=1024, num_heads=16, d_ff=2752)
+    print("GPT-2 large:")
+    count_flops(vocab_size=50257, context_length=1024, num_layers=36, d_model=1280, num_heads=20, d_ff=3392)
+
+    print("GPT-2 XL with larger context:")
+    count_flops(vocab_size=50257, context_length=16384, num_layers=48, d_model=1600, num_heads=25, d_ff=4288)
