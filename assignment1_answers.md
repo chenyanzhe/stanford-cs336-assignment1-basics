@@ -114,11 +114,22 @@
 
 - (a) Our model will have 1,640,452,800 trainable parameters:
   
-  - embeddings: 80,411,200 (4.90%)
-  - rms: 153,600 (0.01%)
-  - ffn: 987,955,200 (60.22%)
-  - mha: 491,520,000 (29.96%)
-  - final_rms: 1,600 (0.00%)
-  - lm_head: 80,411,200 (0.05%)
+  - embeddings: 80,411,200  (4.90%)
+  - rms: 153,600  (0.01%)
+  - ffn: 987,955,200  (60.22%)
+  - mha: 491,520,000  (29.96%)
+  - final_rms: 1,600  (0.00%)
+  - lm_head: 80,411,200  (0.05%)
 
   It will take ~6.4G memory to just load this model. See `scripts/transformer_accounting.py` for detailed calculations.
+
+- (b) The matrix multiplies require in total 3,517,087,744,000 FLOPs:
+
+  - embeddings: 0  (0.00%)
+  - rms: 314,572,800  (0.01%)
+  - ffn: 2,023,332,249,600  (57.53%)
+  - mha: 1,328,755,507,200  (37.78%)
+  - final rms: 3,276,800  (0.00%)
+  - lm_head: 164,682,137,600  (0.05%)
+
+- (c) The FFN and MHA require the most FLOPs.
