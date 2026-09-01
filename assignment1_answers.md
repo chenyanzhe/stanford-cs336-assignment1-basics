@@ -105,3 +105,20 @@
 - (b) The compression ratio is 0.3159, which is much larger. It's likely because TinyStories dataset is simpler than OpenWebText dataset, so texts from OpenWebText can't be merged efficiently with the TinyStories tokenizer.
 - (c) The TinyStories tokenizer throughput: 5.81 MB/s, OpenWebText tokenizer throughput: 5.65 MB/s. It will take ~1.8 days to tokenize the Pile dataset.
 - (d) Because uint16 can represent up to 65536 integers, which is enough for 32K vocabulary size.
+
+## 3 Transformer Language Model Architecture
+
+### 3.5 The Full Transformer LM
+
+#### Problem (transformer_accounting)
+
+- (a) Our model will have 1,640,452,800 trainable parameters:
+  
+  - embeddings: 80,411,200 (4.90%)
+  - rms: 153,600 (0.01%)
+  - ffn: 987,955,200 (60.22%)
+  - mha: 491,520,000 (29.96%)
+  - final_rms: 1,600 (0.00%)
+  - lm_head: 80,411,200 (0.05%)
+
+  It will take ~6.4G memory to just load this model. See `scripts/transformer_accounting.py` for detailed calculations.
