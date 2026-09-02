@@ -173,3 +173,53 @@
   - lm_head: 2634914201600  (0.02%)
 
   The MHA becomes the majority part of FLOPs.
+
+## 4 Training a Transformer LM
+
+### 4.2 The SGD Optimizer
+
+#### Problem (learning_rate_tuning)
+
+Here are the loss for the learning rate: `1e1`, `1e2`, and `1e3`:
+
+> See `scripts/learning_rate_tuning.py` for detailed calculations.
+
+```
+Training with learning rate: 10.0
+27.68764
+17.72009
+13.06249
+10.22001
+8.27820
+6.86358
+5.78852
+4.94645
+4.27165
+3.72108
+
+Training with learning rate: 100.0
+30.11050
+30.11050
+5.16614
+0.12364
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+
+Training with learning rate: 1000.0
+23.87151
+8617.61523
+1488397.75000
+165568336.00000
+13411034112.00000
+846389837824.00000
+43450896482304.00000
+1869443302948864.00000
+68903687883325440.00000
+2212574186608525312.00000
+```
+
+When learning rate is `1e1` or `1e2`, loss decreases in the training. Learning rate `1e2` decays faster, loss becomes 0 after 5 iterations. When learning rate is `1e3`, loss diverges.
