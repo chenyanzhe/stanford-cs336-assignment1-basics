@@ -11,6 +11,7 @@ class AdamW(torch.optim.Optimizer):
         defaults = {"lr": lr, "b1": betas[0], "b2": betas[1], "weight_decay": weight_decay, "eps": eps}
         super().__init__(params, defaults)
 
+    @torch.no_grad()
     def step(self, closure: Callable | None = None):
         loss = None if closure is None else closure()
         for group in self.param_groups:
@@ -23,20 +24,27 @@ class AdamW(torch.optim.Optimizer):
                     continue
 
                 state = self.state[p]  # Get state associated with p
-                t = state.get("t", 1)  # Get iteration number from the state, or 1.
+                grad = p.grad.data  # Get the gradient of loss with respect to p.
+                if "t" not in state:
+                    state["t"] = 1
+                if "m" not in state:
+                    state["m"] = torch.zeros_like(grad)
+                if "v" not in state:
+                    state["v"] = torch.zeros_like(grad)
+
+                t = state.get("t")  # Get iteration number from the state.
+                m = state.get("m")  # Get the first moment estimate.
+                v = state.get("v")  # Get the second moment estimate.
                 lr = group["lr"]  # Get the learning rate.
                 lr_t = (
                     lr * math.sqrt(1.0 - b2**t) / (1.0 - b1**t)
                 )  # Compute the adjusted learning rate for iteration t.
                 p.data -= lr * weight_decay * p.data  # Apply weight decay.
-                grad = p.grad.data  # Get the gradient of loss with respect to p.
-                m = state.get("m", 0)  # Get the first moment estimate, or 0.
                 m = b1 * m + (1 - b1) * grad  # Update the first moment estimate.
-                v = state.get("v", 0)  # Get the second moment estimate, or 0.
                 v = b2 * v + (1 - b2) * (grad**2)  # Update the second moment estimate.
                 p.data -= lr_t * m / (torch.sqrt(v) + eps)  # Apply the moment adjusted weight updates.
-                self.state[p]["t"] = t + 1  # Increment iteration number.
-                self.state[p]["m"] = m  # Save the first moment estimation for iteration t.
-                self.state[p]["v"] = v  # Save the second moment estimation for iteration t.
+                state["t"] = t + 1  # Increment iteration number.
+                state["m"] = m  # Save the first moment estimation for iteration t.
+                state["v"] = v  # Save the second moment estimation for iteration t.
 
         return loss
