@@ -223,3 +223,115 @@ Training with learning rate: 1000.0
 ```
 
 When learning rate is `1e1` or `1e2`, loss decreases in the training. Learning rate `1e2` decays faster, loss becomes 0 after 5 iterations. When learning rate is `1e3`, loss diverges.
+
+### 4.3 AdamW
+
+#### Problem (adamw_accounting) (a)
+
+Parameters:
+
+```python
+def count_model_trainable_parameters(
+    vocab_size: int, context_length: int, num_layers: int, d_model: int, num_heads: int, d_ff: int
+):
+    token_embeddings = vocab_size * d_model
+    # A transformer block has:
+    # - 2 RMSNorm
+    # - 1 FFN (SwiGLU)
+    # - 1 Multi-Head Attention
+    rms = 2 * d_model
+    ffn = 3 * d_model * d_ff
+    mha = 4 * d_model**2
+    final_rms = d_model
+    lm_head = d_model * vocab_size
+    total_params = token_embeddings + (rms + ffn + mha) * num_layers + final_rms + lm_head
+```
+
+Activations:
+
+* Transformer Block `x num_layers`
+  
+  * RMSNorm x 2
+
+    - Output: (batch_size, context_length, d_model)
+    - Activations: `batch_size * context_length * d_model * 2`
+
+  * Multi-head self-attention sublayer
+
+    * QKV projections
+
+      - Q, K, V: (batch_size, context_length, d_model) -> (batch_size, num_heads, context_length, d_k)
+      - Activations: `batch_size * context_length * d_model * 3`
+
+    * QK^T matrix multiply
+  
+      - Output: (batch_size, num_heads, context_length, context_length)
+      - Activations: `batch_size * num_heads * context_length**2`
+
+    * Softmax
+
+      - Output: (batch_size, num_heads, context_length, context_length)
+      - Activations: `batch_size * num_heads * context_length**2`
+
+    * Weighted sum of values
+
+      - Output: (batch_size, num_heads, context_length, d_k) -> (batch_size, context_length, d_model)
+      - Activations: `batch_size * context_length * d_model`
+
+    * Output projection
+
+      - Output: (batch_size, context_length, d_model)
+      - Activations: `batch_size * context_length * d_model`
+
+  * Position-wise feed-forward (SwiGLU)
+
+    * W1
+
+      - Output: (batch_size, context_length, d_ff)
+      - Activations: `batch_size * context_length * d_ff`
+
+    * W2
+
+      - Output: (batch_size, context_length, d_model)
+      - Activations: `batch_size * context_length * d_model`
+
+    * SiLU on the gate branch
+
+      - Output: (batch_size, context_length, d_ff)
+      - Activations: `batch_size * context_length * d_ff`
+
+    * Element-wise product
+
+      - Output: (batch_size, context_length, d_ff)
+      - Activations: `batch_size * context_length * d_ff`
+
+    * W3
+
+      - Output: (batch_size, context_length, d_ff)
+      - Activations: `batch_size * context_length * d_ff`
+
+* Final RMSNorm
+
+  - Output: (batch_size, context_length, d_model)
+  - Activations: `batch_size * context_length * d_model`
+
+* Output embedding
+
+  - Output: (batch_size, context_length, vocab_size)
+  - Activations: `batch_size * context_length * vocab_size`
+
+* Cooss-entropy on logits
+
+  - Output: (batch_size, context_length)
+  - Activations: `batch_size * context_length`
+
+Gradients:
+
+Every parameter has a gradient.
+
+Optimizer state:
+
+* Every parameter has 2 states:
+
+  - The first moment estimate m: float32
+  - The second moment estimate v: float32
