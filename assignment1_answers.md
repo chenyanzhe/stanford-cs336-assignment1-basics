@@ -320,7 +320,7 @@ Activations:
   - Output: (batch_size, context_length, vocab_size)
   - Activations: `batch_size * context_length * vocab_size`
 
-* Cooss-entropy on logits
+* Cross-entropy on logits
 
   - Output: (batch_size, context_length)
   - Activations: `batch_size * context_length`
@@ -335,3 +335,16 @@ Optimizer state:
 
   - The first moment estimate m: float32
   - The second moment estimate v: float32
+
+#### Problem (adamw_accounting) (b)
+
+Output from `scripts/adamw_accounting.py`:
+
+```
+Required memory for batch size 1: 43,043,933,184 => within budget
+Required memory for batch size 2: 59,840,621,568 => within budget
+Required memory for batch size 3: 76,637,309,952 => within budget
+Required memory for batch size 4: 93,433,998,336 => exceed budget
+```
+
+The maximum batch size is 3.
