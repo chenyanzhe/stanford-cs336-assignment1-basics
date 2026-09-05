@@ -348,3 +348,41 @@ Required memory for batch size 4: 93,433,998,336 => exceed budget
 ```
 
 The maximum batch size is 3.
+
+#### Problem (adamw_accounting) (c)
+
+Count FLOPs per Parameter:
+
+1. Line 8: Weight decay `theta = theta - alpha * lamda * theta`
+
+This can be written as `theta = (1 - alpha * lamda) * theta`. `(1 - alpha * lamda)` can be precomputed once as a scalar.
+
+It takes 1 FLOP.
+
+1. Line 9: First moment update `m = beta1 * m  + (1 - beta1) * g`
+
+It takes 3 FLOPs:
+* Multiplying `beta1 * m`
+* Multiplying `(1 - beta1) * g`
+* Adding the two
+
+3. Line 10: Second moment update `v = beta2 * v + (1 - beta2) * g**2`
+
+It takes 4 FLOPs:
+* Multiplying `beta2 * v`
+* Squaring `g**2`
+* Multiplying `(1 - beta2) * g**2`
+* Adding the two
+
+4. Line 11: Moment-adjusted weight update `theta = theta - alpha_t * m / (sqrt(v) + eps)`
+
+It takes 5 FLOPs:
+* Multiplying `alpha_t * m`
+* Taking the square root: `sqrt(v)`
+* Adding eps: `sqrt(v) + eps`
+* Dividing: `alpha_t * m / (sqrt(v) + eps)`
+* Substracting: `theta - alpha_t * m / (sqrt(v) + eps)`
+
+Summing up, it takes 13 FLOPs per parameter.
+
+As a result, one step of AdamW will take `13P` FLOPs, where `P` is the total number of trainable parameters in the model.
