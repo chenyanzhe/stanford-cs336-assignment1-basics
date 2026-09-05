@@ -386,3 +386,21 @@ It takes 5 FLOPs:
 Summing up, it takes 13 FLOPs per parameter.
 
 As a result, one step of AdamW will take `13P` FLOPs, where `P` is the total number of trainable parameters in the model.
+
+#### Problem (adamw_accounting) (d)
+
+1. Forward pass
+
+For a GPT-2 XL model, it takes `3,517,087,744,000` x `1024` FLOPs in a single forward pass.
+
+2. Backward pass
+
+The backward pass has twice the FLOPs of the forward pass.
+
+3. Optimizer step
+
+For a GPT-2 XL model, there are `1,640,452,800` trainable parameters, so it takes ``1,640,452,800` x `13` FLOPs in a single step.
+
+As a whole, it takes `3,517,087,744,000 * 1024 * 3 + 1,640,452,800 * 13` x `400,000` FLOPs, let it be `P`.
+
+The number of hours will be: `P / (495e12 * 0.5) / 3600`, which is `~4850` hours.
