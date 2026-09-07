@@ -5,18 +5,31 @@ import torch
 
 
 class AdamW(torch.optim.Optimizer):
-    def __init__(self, params, lr: float, betas: tuple[float, float], weight_decay: float, eps: float):
+    def __init__(
+        self,
+        params,
+        lr: float = 1e-3,
+        betas: tuple[float, float] = (0.9, 0.999),
+        weight_decay: float = 1e-2,
+        eps: float = 1e-8,
+    ):
         if lr < 0:
             raise ValueError(f"Invalid learning rate: {lr}")
-        defaults = {"lr": lr, "b1": betas[0], "b2": betas[1], "weight_decay": weight_decay, "eps": eps}
+        if betas[0] < 0.0 or betas[0] > 1.0 or betas[1] < 0.0 or betas[1] > 1.0:
+            raise ValueError(f"Invalid betas: {betas}")
+        if weight_decay < 0.0:
+            raise ValueError(f"Invalid weight decay: {weight_decay}")
+        if eps < 0.0:
+            raise ValueError(f"Invalid eps: {eps}")
+
+        defaults = {"lr": lr, "betas": betas, "weight_decay": weight_decay, "eps": eps}
         super().__init__(params, defaults)
 
     @torch.no_grad()
     def step(self, closure: Callable | None = None):
         loss = None if closure is None else closure()
         for group in self.param_groups:
-            b1 = group["b1"]
-            b2 = group["b2"]  # Get the b1, b2 to update the moment estimates.
+            b1, b2 = group["betas"]  # Get the b1, b2 to update the moment estimates.
             weight_decay = group["weight_decay"]  # Get the weight decay rate.
             eps = group["eps"]  # Get the epsilon.
             for p in group["params"]:
