@@ -11,8 +11,10 @@ from torch import Tensor
 
 from cs336_basics.adamw import AdamW
 from cs336_basics.cross_entropy import cross_entropy
+from cs336_basics.data_loading import get_batch
 from cs336_basics.embedding import Embedding
 from cs336_basics.get_lr_cosine_schedule import get_lr_cosine_schedule
+from cs336_basics.gradient_clipping import gradient_clipping
 from cs336_basics.linear import Linear
 from cs336_basics.multihead_self_attention import MultiHeadSelfAttention
 from cs336_basics.rmsnorm import RMSNorm
@@ -24,7 +26,6 @@ from cs336_basics.tokenizer import Tokenizer
 from cs336_basics.train_bpe import train_bpe
 from cs336_basics.transformer_block import TransformerBlock
 from cs336_basics.transformer_lm import TransformerLM
-from cs336_basics.gradient_clipping import gradient_clipping
 
 
 def run_linear(
@@ -477,7 +478,7 @@ def run_get_batch(
         is the sampled input sequences, and the second tuple item is the corresponding
         language modeling labels.
     """
-    raise NotImplementedError
+    return get_batch(dataset, batch_size, context_length, device)
 
 
 def run_softmax(in_features: Float[Tensor, " ..."], dim: int) -> Float[Tensor, " ..."]:
