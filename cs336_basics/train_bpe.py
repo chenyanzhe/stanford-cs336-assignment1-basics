@@ -141,8 +141,9 @@ def train_bpe(
     for idx in range(len(word_tokens)):
         for pair in zip(word_tokens[idx][:-1], word_tokens[idx][1:]):
             pair_counts[pair] += word_freqs[idx]
-            heapq.heappush(heap, MaxHeapItem(pair_counts[pair], pair))
             pair_to_words[pair].add(idx)
+    for pair, count in pair_counts.items():
+        heapq.heappush(heap, MaxHeapItem(count, pair))
 
     while next_v < vocab_size and pair_counts:
         # Find the pair to merge.
