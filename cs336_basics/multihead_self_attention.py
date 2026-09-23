@@ -28,7 +28,6 @@ class MultiHeadSelfAttention(nn.Module):
             self.use_rope = True
             self.rope = RotaryPositionalEmbedding(theta, d_model // num_heads, max_seq_len)
             self.token_positions = token_positions
-        self.mask = None
 
     def forward(self, in_features: torch.Tensor) -> torch.Tensor:
         seq_len = in_features.shape[-2]
@@ -40,15 +39,18 @@ class MultiHeadSelfAttention(nn.Module):
         V_h = einops.rearrange(V, "... seq_len (num_heads d_v) -> ... num_heads seq_len d_v", num_heads=self.num_heads)
 
         if self.use_rope:
-            if self.token_positions is None:
-                self.token_positions = torch.arange(seq_len)
-            Q_h = self.rope(Q_h, self.token_positions)
-            K_h = self.rope(K_h, self.token_positions)
+            pos = (
+                self.token_positions
+                if self.token_positions is not None
+                else torch.arange(seq_len, device=in_features.device)
+            )
+            Q_h = self.rope(Q_h, pos)
+            K_h = self.rope(K_h, pos)
 
-        if self.mask is None:
-            self.mask = torch.triu(torch.full((seq_len, seq_len), True))
-            self.mask = einops.rearrange(self.mask, "i j -> j i")
-            self.mask.unsqueeze(0).unsqueeze(0)
-        attention_h = scaled_dot_product_attention(Q_h, K_h, V_h, self.mask)
+        mask = torch.triu(torch.full((seq_len, seq_len), True, device=in_features.device, dtype=torch.bool))
+        mask = einops.rearrange(mask, "i j -> j i")
+        mask = mask.unsqueeze(0).unsqueeze(0)
+
+        attention_h = scaled_dot_product_attention(Q_h, K_h, V_h, mask)
         attention = einops.rearrange(attention_h, "... num_heads seq_len d_v -> ... seq_len (num_heads d_v)")
         return self.L_o(attention)
