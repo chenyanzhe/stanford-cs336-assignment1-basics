@@ -6,6 +6,7 @@ import pickle
 import time
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
+from itertools import pairwise
 
 import regex as re
 
@@ -43,9 +44,9 @@ def merge_pair(tokens: list[bytes], pair: tuple[bytes, bytes]) -> list[bytes]:
     return result
 
 
-def count_pairs(tokens: list[bytes]) -> defaultdict[int]:
+def count_pairs(tokens: list[bytes]) -> defaultdict[tuple[bytes, bytes], int]:
     pair_counts = defaultdict(int)
-    for i, j in zip(tokens[:-1], tokens[1:]):
+    for i, j in pairwise(tokens):
         pair_counts[(i, j)] += 1
     return pair_counts
 
@@ -104,7 +105,7 @@ def train_bpe(
     num_processes=4,
 ) -> tuple[dict[int, bytes], list[tuple[bytes, bytes]]]:
     # Initialize vocabulary with the initial byte vocabulary and special tokens.
-    vocab = dict()
+    vocab = {}
     for i in range(256):
         vocab[i] = bytes([i])
     next_v = 256
@@ -112,7 +113,7 @@ def train_bpe(
         vocab[next_v] = token.encode("utf-8")
         next_v += 1
 
-    merges = list()
+    merges = []
     if next_v >= vocab_size:
         return vocab, merges
 
@@ -121,7 +122,7 @@ def train_bpe(
     with open(input_path, "rb") as f:
         boundaries = find_chunk_boundaries(f, desired_num_chunks, b"<|endoftext|>")
     # Parallelize pre-tokenization work by sending each start/end pair to a set of processes.
-    tasks = [(input_path, special_tokens, start, end) for start, end in zip(boundaries[:-1], boundaries[1:])]
+    tasks = [(input_path, special_tokens, start, end) for start, end in pairwise(boundaries)]
     word_counts = defaultdict(int)  # pre-tokenized words and counts
     with ProcessPoolExecutor(max_workers=num_processes) as executor:
         for chunk_counts in executor.map(pre_tokenization, tasks):
@@ -133,7 +134,7 @@ def train_bpe(
     # Introducing word id (index), to decouple the word and its token representation.
     # WHY: when we merge a pair of tokens in a word, we only need to update word_tokens,
     # we don't need to update word_freqs and pair_to_words.
-    word_tokens = list([bytes([b]) for b in t] for t in word_counts.keys())  # index -> list(bytes)
+    word_tokens = [[bytes([b]) for b in t] for t in word_counts]  # index -> list(bytes)
     word_freqs = list(word_counts.values())  # index -> int
 
     # Build pair_counts and pair_to_words stats.
@@ -141,7 +142,7 @@ def train_bpe(
     pair_counts = defaultdict(int)  # tuple(bytes, bytes) -> int
     pair_to_words = defaultdict(set[int])  # tuple(bytes, bytes) -> set(int)
     for idx in range(len(word_tokens)):
-        for pair in zip(word_tokens[idx][:-1], word_tokens[idx][1:]):
+        for pair in pairwise(word_tokens[idx]):
             pair_counts[pair] += word_freqs[idx]
             pair_to_words[pair].add(idx)
     for pair, count in pair_counts.items():
@@ -174,7 +175,7 @@ def train_bpe(
             old_pair_counts = count_pairs(tokens)
             new_pair_counts = count_pairs(merged_tokens)
 
-            for p in old_pair_counts.keys():
+            for p in old_pair_counts:
                 if new_pair_counts[p] != old_pair_counts[p]:
                     changed_pairs.add(p)
                 pair_counts[p] += (new_pair_counts[p] - old_pair_counts[p]) * count
@@ -185,7 +186,7 @@ def train_bpe(
                     if len(pair_to_words[p]) == 0:
                         pair_to_words.pop(p)
 
-            for p in new_pair_counts.keys():
+            for p in new_pair_counts:
                 if new_pair_counts[p] != old_pair_counts[p]:
                     changed_pairs.add(p)
                 if old_pair_counts[(p)] == 0:
