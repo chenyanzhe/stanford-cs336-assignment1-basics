@@ -211,7 +211,7 @@ if __name__ == "__main__":
         default="data/TinyStoriesV2-GPT4-train.txt",
         help="Path to a text file with BPE tokenizer training data.",
     )
-    parser.add_argument("--output-path", default="output/", help="Output path to store vocabulary and merges.")
+    parser.add_argument("--output-path", default="data/", help="Output path to store vocabulary and merges.")
     parser.add_argument(
         "--vocab-size",
         default=10000,

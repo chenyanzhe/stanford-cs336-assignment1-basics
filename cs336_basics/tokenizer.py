@@ -1,4 +1,5 @@
 import heapq
+import os
 import pickle
 from collections.abc import Iterable, Iterator
 
@@ -43,7 +44,12 @@ class Tokenizer:
                 next_v += 1
 
     @classmethod
-    def from_files(cls, vocab_filepath: str, merges_filepath: str, special_tokens: list[str] | None = None):
+    def from_files(
+        cls,
+        vocab_filepath: str | os.PathLike,
+        merges_filepath: str | os.PathLike,
+        special_tokens: list[str] | None = None,
+    ):
         with open(vocab_filepath, "rb") as f:
             vocab = pickle.load(f)
         with open(merges_filepath, "rb") as f:
