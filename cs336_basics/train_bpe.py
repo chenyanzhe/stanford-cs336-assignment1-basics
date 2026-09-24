@@ -64,7 +64,7 @@ def pre_tokenization(args: tuple):
         # Pre-tokenization and count frequency.
         for corpus in corpora:
             for match in re.finditer(COMPILED_PAT, corpus):
-                word_counts[tuple(bytes([b]) for b in match.group().encode("utf-8"))] += 1
+                word_counts[match.group().encode("utf-8")] += 1
     return word_counts
 
 
@@ -100,6 +100,7 @@ def train_bpe(
     input_path: str | os.PathLike,
     vocab_size: int,
     special_tokens: list[str],
+    target_chunk_size=50 * 1024 * 1024,  # 50MB
     num_processes=4,
 ) -> tuple[dict[int, bytes], list[tuple[bytes, bytes]]]:
     # Initialize vocabulary with the initial byte vocabulary and special tokens.
@@ -116,8 +117,9 @@ def train_bpe(
         return vocab, merges
 
     start_time = time.time()
+    desired_num_chunks = max(os.path.getsize(input_path) // target_chunk_size, 1)
     with open(input_path, "rb") as f:
-        boundaries = find_chunk_boundaries(f, num_processes, b"<|endoftext|>")
+        boundaries = find_chunk_boundaries(f, desired_num_chunks, b"<|endoftext|>")
     # Parallelize pre-tokenization work by sending each start/end pair to a set of processes.
     tasks = [(input_path, special_tokens, start, end) for start, end in zip(boundaries[:-1], boundaries[1:])]
     word_counts = defaultdict(int)  # pre-tokenized words and counts
@@ -131,7 +133,7 @@ def train_bpe(
     # Introducing word id (index), to decouple the word and its token representation.
     # WHY: when we merge a pair of tokens in a word, we only need to update word_tokens,
     # we don't need to update word_freqs and pair_to_words.
-    word_tokens = list(list(t) for t in word_counts.keys())  # index -> list(bytes)
+    word_tokens = list([bytes([b]) for b in t] for t in word_counts.keys())  # index -> list(bytes)
     word_freqs = list(word_counts.values())  # index -> int
 
     # Build pair_counts and pair_to_words stats.
@@ -222,7 +224,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
     dataset_name = re.split("[-_]", pathlib.Path(args.input_path).stem)[0]
     print(f"Train BPE tokenizer with {dataset_name}: {args}")
-    vocab, merges = train_bpe(args.input_path, args.vocab_size, args.special_tokens, args.num_processes)
+    vocab, merges = train_bpe(
+        input_path=args.input_path,
+        vocab_size=args.vocab_size,
+        special_tokens=args.special_tokens,
+        num_processes=args.num_processes,
+    )
     print(f"Train complete - vocabulary size: {len(vocab)}, longest token: {max(vocab.values(), key=len)}")
     print(f"Saving vocab and merges to {args.output_path} ({dataset_name}-vocab.pkl and {dataset_name}-merges.pkl)")
     with open(args.output_path + dataset_name + "-vocab.pkl", "wb") as f:
