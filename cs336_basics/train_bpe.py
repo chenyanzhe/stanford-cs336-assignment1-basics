@@ -162,6 +162,7 @@ def train_bpe(
         next_v += 1
 
         # For each word contains the merge pair, updates pair_counts and pair_to_words.
+        changed_pairs = set()
         for idx in list(pair_to_words[pair_to_merge]):
             tokens = word_tokens[idx]
             count = word_freqs[idx]
@@ -172,21 +173,27 @@ def train_bpe(
             new_pair_counts = count_pairs(merged_tokens)
 
             for p in old_pair_counts.keys():
+                if new_pair_counts[p] != old_pair_counts[p]:
+                    changed_pairs.add(p)
                 pair_counts[p] += (new_pair_counts[p] - old_pair_counts[p]) * count
                 if pair_counts[p] == 0:
                     pair_counts.pop(p)
-                else:
-                    heapq.heappush(heap, MaxHeapItem(pair_counts[p], p))
                 if new_pair_counts[p] == 0:
                     pair_to_words[p].remove(idx)
                     if len(pair_to_words[p]) == 0:
                         pair_to_words.pop(p)
 
             for p in new_pair_counts.keys():
+                if new_pair_counts[p] != old_pair_counts[p]:
+                    changed_pairs.add(p)
                 if old_pair_counts[(p)] == 0:
                     pair_counts[p] += new_pair_counts[p] * count
-                    heapq.heappush(heap, MaxHeapItem(pair_counts[p], p))
                     pair_to_words[p].add(idx)
+
+        # Update the heap.
+        for p in changed_pairs:
+            if p in pair_counts:
+                heapq.heappush(heap, MaxHeapItem(pair_counts[p], p))
 
     end_time2 = time.time()
     print(f"Perf stats - pre-tokenization: {end_time - start_time:.3f}s merges: {end_time2 - end_time:.3f}s")
