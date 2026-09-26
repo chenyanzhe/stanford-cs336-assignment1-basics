@@ -29,7 +29,7 @@ def run_validation(model, dataset, args):
                 device=args.device_type,
             )
             loss = cross_entropy(model(inputs), targets)
-            total_loss += loss.cpu().item()
+            total_loss += loss.item()
             num_batches += 1
     model.train()
     return total_loss / num_batches
@@ -94,7 +94,7 @@ if __name__ == "__main__":
     # Checkpointing arguments.
     parser.add_argument(
         "--checkpoint-path",
-        default="training-ckpt",
+        default="ckpt/training-ckpt",
         type=str,
         help="Path to serialize the model, optimizer, and iteration to.",
     )
@@ -147,6 +147,10 @@ if __name__ == "__main__":
         dir_name = os.path.dirname(args.log_file)
         if dir_name:
             os.makedirs(dir_name, exist_ok=True)
+    if args.checkpoint_path:
+        dir_name = os.path.dirname(args.checkpoint_path)
+        if dir_name:
+            os.makedirs(dir_name, exist_ok=True)
     start_time = time.time()
 
     for it in range(args.training_iters):
@@ -179,11 +183,11 @@ if __name__ == "__main__":
                 "step": it,
                 "wallclock_time": wallclock_time,
                 "tokens": tokens,
-                "train_loss": loss.cpu().item(),
+                "train_loss": loss.item(),
                 "lr": lr,
             }
             print(
-                f"Step: {it}, Wallclock Time: {wallclock_time}, Tokens: {tokens}, Train Loss: {loss.cpu().item()}, LR: {lr}"
+                f"[TRAIN] Step: {it:>6} | Time: {wallclock_time:<10.2f} | Tokens: {tokens:<12,d} | Loss: {loss.item():<10.4f} | LR: {lr:<10.4e}"
             )
             if args.log_file:
                 with open(args.log_file, "a") as f:
@@ -200,15 +204,16 @@ if __name__ == "__main__":
             val_loss = run_validation(model, validation_dataset, args)
             wallclock_time = time.time() - start_time
             tokens = (it + 1) * args.batch_size * args.context_length
+            val_perplexity = math.exp(val_loss)
             log_entry = {
                 "step": it,
                 "wallclock_time": wallclock_time,
                 "tokens": tokens,
                 "val_loss": val_loss,
-                "val_perplexity": round(math.exp(val_loss), 4),
+                "val_perplexity": round(val_perplexity, 4),
             }
             print(
-                f"Step: {it}, Wallclock Time: {wallclock_time}, Tokens: {tokens}, Val Loss: {val_loss}, Val Perplexity: {math.exp(val_loss):.4f}"
+                f"[VALID] Step: {it:>6} | Time: {wallclock_time:<10.2f} | Tokens: {tokens:<12,d} | Loss: {val_loss:<10.4f} | PPL: {val_perplexity:<10.4f}"
             )
             if args.log_file:
                 with open(args.log_file, "a") as f:

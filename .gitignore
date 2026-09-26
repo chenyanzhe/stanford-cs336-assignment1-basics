@@ -164,5 +164,8 @@ cython_debug/
 
 # Avoid unnecessary uploads
 uv.lock
+*.pt
 data/
 output/
+ckpt/
+logs/
