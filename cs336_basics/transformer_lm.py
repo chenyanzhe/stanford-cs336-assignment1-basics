@@ -25,6 +25,7 @@ class TransformerLM(nn.Module):
         )
         self.ln_final = RMSNorm(d_model)
         self.lm_head = Linear(d_model, vocab_size)
+        self.context_length = context_length
 
     def forward(self, in_indices: torch.Tensor) -> torch.Tensor:
         in_features = self.token_embeddings(in_indices)
